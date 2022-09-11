@@ -8,13 +8,14 @@ def main ():
     print('v.1.0 \n')
     print('type \"man\" for instructions \n')
 
-    userinput = ''
+    userInputExit = ''
     #program runs until user types exit
-    while userinput != 'exit':
+    while userInputExit != 'exit':
         userinput = input('type command: ')
+        userinput = userinput.split()
         
         #lower to make input case insensitive
-        match userinput.lower():
+        match userinput[0].lower():
 
             case 'today':
                 print('Todays games \n')
@@ -22,9 +23,20 @@ def main ():
 
             case 'now':
                 print('games that are being played right now \n')
+                now = reqs.now()
 
             case 'player':
+
+                if len(userinput) > 2 :
+
+                    player = reqs.player(userinput[1], userinput[2])
+
+                else:
+                    print('Wrong input. Syntax for the player command is: player firstname lastname')
+                    continue
                 print('info about the player \n')
+                player.printPlayer()
+
 
             case 'follow':
                 print('tunes into a game')
@@ -34,6 +46,8 @@ def main ():
 
             case 'exit':
                 print('thank you for using SnookerTracker!')
+                userInputExit = 'exit'
+
 
             
             case _ :
