@@ -1,9 +1,11 @@
 import datetime
 from this import d
 from threading import local
+from time import timezone
 import requests
 import pandas as pd
 import json
+import tzlocal
 from dateutil import tz
 import pytz
 import Match
@@ -17,8 +19,6 @@ def today ():
 
     date = datetime.date.today()
     
-    print('date on')
-    print(date)
 
     requestStringEventsThisYear = url + "/?t=5&s=[" + str(date.year) + ']'
         
@@ -44,10 +44,15 @@ def today ():
 
     print(matchesOfEventsNow)
 
-    
+    matchesofeventsnowstring = json.dumps(matchesOfEventsNow)
+    jsonFile = open('matchesofeventsnow.json', 'w')
+    jsonFile.write(matchesofeventsnowstring)
+    jsonFile.close()
+
     matchesOfEventsNow = updateDataToFinnishTime(matchesOfEventsNow)               #convert to etc+2 or etc+3
 
     print('matches of events now UPDATED')
+
 
     print(matchesOfEventsNow)
 
@@ -65,22 +70,41 @@ def today ():
     print('upcomingmatches')
     print(upcomingMatches)
 
-    todayMatches = finishedMatchesToday + ongoingMatches + upcomingMatches
+    matchesupcoming = json.dumps(upcomingMatches)
+    jsonFile = open('upcomingMatches.json', 'w')
+    jsonFile.write(matchesupcoming)
+    jsonFile.close()
+
+
+   
+    #todayMatches = finishedMatchesToday + ongoingMatches + upcomingMatches
+
+    todayMatches = []
+
+    todayMatches.append(finishedMatchesToday)
+    todayMatches.append(ongoingMatches)
+    todayMatches.append(upcomingMatches)
 
     print('todayMatches')
     print(todayMatches)
-
     todayMatchesObj = []
 
     for i in todayMatches:
 
-        todayMatchesObj = todayMatchesObj + Match(i)
+        matches = []
+
+        for j in i:
+            
+            matches.append(Match.Match(j))
+        
+        print('matches')
+        print(matches)
+        todayMatchesObj.append(matches)
+        
 
     return todayMatchesObj
 
-
-
-
+    
 
 def now():
     #returns matches that are being played now
@@ -91,28 +115,21 @@ def now():
     ongoingMatchesObj = []
 
     for i in ongoingMatches:
-        ongoingMatchesObj = ongoingMatchesObj + Match(i)
+        ongoingMatchesObj = ongoingMatchesObj + Match.Match(i)
 
     return ongoingMatchesObj
 
 
 def player(firstName, lastName):
 
-    print('firstname lastname')
-    print(firstName)
-    print(lastName)
     allPlayersAnswer = requests.request('GET', url + '/?t=10&st=p&s=2022')
 
     allPlayers = json.loads(allPlayersAnswer.text)
 
-    print('allplayers')
-    print(allPlayers)
 
-    player = list(filter(lambda x: (x['FirstName'] == firstName and x['LastName'] == lastName), allPlayers))
-    print('player')
-    print(player[0])
+    player = list(filter(lambda x: (x['FirstName'].lower() == firstName.lower() and x['LastName'].lower() == lastName.lower()), allPlayers))
 
-    if (player[0]):
+    if (len(player) == 1):
 
         return Player(player[0])
 
@@ -124,13 +141,17 @@ def player(firstName, lastName):
 def convertTime(dttme):
     #converts datetime to finnish time
     
-    from_zone = tz.gettz('Etc/GMT+3') #converts to this timezone TODO: create environmental variable determining summer or winter time
-    to_zone = tz.gettz('UTC')
-    dttme = dttme.replace(tzinfo = from_zone) #tzinfo=from_zone
+    localtimezone = tzlocal.get_localzone_name()
+    
+    print('localtimezone')
+    print(localtimezone)
+    #print('dtutc')
+    #print(dtUTC)
+    #from_zone = tz.gettz('UTC') #converts to this timezone TODO: create environmental variable determining summer or winter time
+    to_zone = tz.gettz(localtimezone)
     newdttme = dttme.astimezone(to_zone)
     #targettimezone Etc/GMT+3
-    print('newdttme')
-    print(newdttme)
+
 
     return newdttme
 
@@ -139,26 +160,29 @@ def updateDataToFinnishTime(matchesOfEventsNow):
     #Convert StartDate and EndDate to finnish times, if slot empty do nothing
 
     for i in matchesOfEventsNow:
-        print('i, startdate')
-        print(i['StartDate'])
-        if(i['StartDate'].strip()):     #converts timezone only if string is not empty
+        
+        if(i['StartDate'].strip() and i['EndDate'.strip()]):     #converts timezone only if string is not empty
 
-            i.update({'StartDate': convertTime(pd.to_datetime(i['StartDate']))})
+            i.update({'StartDate': str(convertTime(pd.to_datetime(i['StartDate']))), 'EndDate': str(convertTime(pd.to_datetime(i['EndDate'])))})
 
-        if(i['EndDate'].strip()):
-            i.update({'EndDate:': convertTime(pd.to_datetime(i['EndDate']))})
 
     return matchesOfEventsNow
 
 def finishedMatchesTodayDef(matchesOfEventsNow):
     #Returns matches that have been played today
+    localtimezone = tzlocal.get_localzone_name()
+    now = datetime.datetime.now(pytz.timezone(localtimezone))
     
-    now = datetime.datetime.now()
-    nowTest = pd.to_datetime("2022-09-09T15:10:24Z")
+    to_zone = tz.gettz(localtimezone)
+    nowTest = pd.to_datetime("2022-09-17T15:10:24Z")
 
-    print('nowTest')
-    print(nowTest.date() == now.date())
-    finishedMatchesToday = list(filter(lambda x: (pd.to_datetime(x['StartDate']).date() == now.date() and now >= pd.to_datetime(x['EndDate'])), matchesOfEventsNow))
+    print('now')
+    print(now)
+
+    print('nowtest')
+    print(nowTest)
+
+    finishedMatchesToday = list(filter(lambda x: (str(pd.to_datetime(x['StartDate']).date()) == str(now.date()) and now >= pd.to_datetime(x['EndDate'])), matchesOfEventsNow))
     
     return finishedMatchesToday
 
@@ -166,7 +190,20 @@ def upcomingMatchesToday(matchesOfEventsNow):
 
     now = datetime.datetime.now()
     
-    upcomingMatchesTodayList = list(filter(lambda x: (pd.to_datetime(x['StartDate']).date() == "" and pd.to_datetime(x['ScheduledDate']).date() == now.date()), matchesOfEventsNow))
+    upcomingMatchesTodayList = list(filter(lambda x: (x['StartDate'] == "" and pd.to_datetime(x['ScheduledDate']).date() == now.date()), matchesOfEventsNow))
 
     return upcomingMatchesTodayList
-    
+
+
+def playerById(id):
+
+    playerAnswer = requests.request('GET', url + '/?p=' + str(id))
+
+    player = json.loads(playerAnswer.text)
+
+
+    return Player(player[0])
+
+def matchById(id):
+
+    matchAnswer = requests.request('GET', url + '')
