@@ -1,6 +1,7 @@
 import requests
 import reqs
 from Player import Player
+from Event import Event
 
 class Match:
 
@@ -14,6 +15,7 @@ class Match:
         self.unfinished = data['Unfinished']
         self.onBreak = data['OnBreak']
         winnerOfTheGame = data['WinnerID']
+        self.event = reqs.EventById(data['EventID'])
 
         if(winnerOfTheGame !=0):
             
@@ -25,6 +27,8 @@ class Match:
 
     def printMatch(self):
 
+        
+        self.event.printEvent()
         self.p1.printName()
         print(' vs ', end="")
         self.p2.printName()
@@ -46,5 +50,15 @@ class Match:
         print('  id: ' + str(self.id))
         print('\n')
         print('..........................')
+
+    def printSituation(self):
+
+        self.p1.printName()
+        print(' vs ', end="")
+        self.p2.printName()
+        print('\n')
+        print('     ' + str(self.score1) + '    Frames   ' + str(self.score2)) 
+
+        print('-----------------------------------')
 
         

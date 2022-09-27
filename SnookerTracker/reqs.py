@@ -10,6 +10,8 @@ from dateutil import tz
 import pytz
 import Match
 from Player import Player
+import Event
+import asyncio
 url = 'http://api.snooker.org'
 
 
@@ -93,9 +95,13 @@ def today ():
 
         matches = []
 
-        for j in i:
-            
-            matches.append(Match.Match(j))
+        if (len(i)>0): 
+
+            for j in i:
+                print('j')
+                print(j)
+                
+                matches.append(Match.Match(j))
         
         print('matches')
         print(matches)
@@ -199,6 +205,7 @@ def playerById(id):
 
     playerAnswer = requests.request('GET', url + '/?p=' + str(id))
 
+
     player = json.loads(playerAnswer.text)
 
 
@@ -207,3 +214,24 @@ def playerById(id):
 def matchById(id):
 
     matchAnswer = requests.request('GET', url + '')
+    match = json.loads(matchAnswer.text)
+    matchObj = Match(match)
+    return matchObj
+
+def EventById(id):
+
+    
+    eventanswer = requests.request('GET', url + '?e=' + str(id))
+    event = json.loads(eventanswer.text)
+    
+    if(event[0]):
+        return Event.Event(event[0])
+
+async def printSituations(matches):
+
+    for i in matches:
+        i.printMatch()
+    
+    await asyncio.sleep(180)
+
+#async def follow()

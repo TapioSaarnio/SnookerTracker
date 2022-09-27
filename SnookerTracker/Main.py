@@ -3,7 +3,8 @@ from Match import Match
 import reqs
 import requests
 import json
-def main ():
+import asyncio
+async def main ():
 
     #prints basic info about the program
     print('### SnookerTracker ### \n')
@@ -77,11 +78,32 @@ def main ():
 
 
             case 'follow':
-                print('tunes into a game')
-                if(len(userinput) == 2 and userinput[1].isdigit()):
-                    match = reqs.matchById(userinput[1])
 
+                print('tunes into a game')
+                matches = []
+                testMatches = []
+                testMatches.append(reqs.matchById(2322549))
+                testMatches.append(reqs.matchById(2322550))
+                testMatches.append(reqs.matchById(2322551))
+                userinputFollow = ''
+                #if(len(userinput) == 2 and userinput[1].isdigit()):  uncomment when things working
+                   # matches.append(reqs.matchById(userinput[1]))
                 
+                
+
+                while(len(testMatches) > 0):
+
+                    task = asyncio.create_task(reqs.printSituations(testMatches))
+                    
+
+                    userinputFollow = input('type id to follow another match: ')
+                    userinputFollow.split()
+                    print('userinputfollowsplit')
+                    print(userinputFollow)
+                    if(userinput):
+                        matches.append(reqs.matchById(userinputFollow[0]))
+                    
+                    await task
 
             case 'man':
                 sys
@@ -121,5 +143,7 @@ def main ():
 
 
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+    #main()
+
+asyncio.run(main())
